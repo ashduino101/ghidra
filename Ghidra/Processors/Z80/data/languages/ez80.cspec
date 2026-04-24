@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<compiler_spec>
+    <data_organization>
+        <pointer_size value="3" />
+    </data_organization>
+    <global>
+        <range space="ram"/>
+    </global>
+    <stackpointer register="SPL" space="ram"/>
+    <returnaddress>
+        <varnode space="stack" offset="0" size="3"/>
+    </returnaddress>
+    <default_proto>
+        <prototype name="__stdcall" extrapop="3" stackshift="3">
+            <input>
+                <pentry minsize="1" maxsize="1">
+                    <register name="A"/>
+                </pentry>
+                <pentry minsize="1" maxsize="3">
+                    <register name="BC"/>
+                </pentry>
+                <pentry minsize="1" maxsize="3">
+                    <register name="DE"/>
+                </pentry>
+                <pentry minsize="1" maxsize="3">
+                    <register name="HL"/>
+                </pentry>
+                <pentry minsize="1" maxsize="500" align="1">
+                    <addr offset="3" space="stack"/>
+                </pentry>
+            </input>
+            <output>
+                <pentry minsize="1" maxsize="3">
+                    <register name="HL"/>
+                </pentry>
+            </output>
+            <unaffected>
+                <register name="SPL"/>
+                <register name="rBBR"/>
+                <register name="BC_"/>
+                <register name="HL_"/>
+                <register name="DE_"/>
+                <register name="AF_"/>
+                <register name="DECOMPILE_MODE"/>
+            </unaffected>
+        </prototype>
+    </default_proto>
+    <prototype name="__thiscall" extrapop="3" stackshift="3">
+        <input>
+            <pentry minsize="1" maxsize="3">
+                <register name="IY"/>
+            </pentry>
+            <pentry minsize="1" maxsize="1">
+                <register name="A"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="BC"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="DE"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="HL"/>
+            </pentry>
+            <pentry minsize="1" maxsize="500" align="1">
+                <addr offset="3" space="stack"/>
+            </pentry>
+        </input>
+        <output>
+            <pentry minsize="1" maxsize="3">
+                <register name="HL"/>
+            </pentry>
+        </output>
+        <unaffected>
+            <register name="SPL"/>
+            <register name="rBBR"/>
+            <register name="BC_"/>
+            <register name="HL_"/>
+            <register name="DE_"/>
+            <register name="AF_"/>
+            <register name="DECOMPILE_MODE"/>
+        </unaffected>
+    </prototype>
+    <prototype name="__asmA" extrapop="3" stackshift="3">
+        <input>
+            <pentry minsize="1" maxsize="1">
+                <register name="A"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="BC"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="DE"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="IY"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="IX"/>
+            </pentry>
+            <pentry minsize="1" maxsize="500" align="1">
+                <addr offset="3" space="stack"/>
+            </pentry>
+        </input>
+        <output>
+            <pentry minsize="1" maxsize="1">
+                <register name="A"/>
+            </pentry>
+        </output>
+        <unaffected>
+            <register name="SPL"/>
+            <register name="BC_"/>
+            <register name="HL_"/>
+            <register name="DE_"/>
+            <register name="AF_"/>
+            <register name="rBBR"/>
+            <register name="DECOMPILE_MODE"/>
+        </unaffected>
+    </prototype>
+    <prototype name="__asmAF" extrapop="3" stackshift="3">
+        <input>
+            <pentry minsize="1" maxsize="1">
+                <register name="A"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="BC"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="HL"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="DE"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="IY"/>
+            </pentry>
+            <pentry minsize="1" maxsize="3">
+                <register name="IX"/>
+            </pentry>
+            <pentry minsize="1" maxsize="500" align="1">
+                <addr offset="3" space="stack"/>
+            </pentry>
+        </input>
+        <output>
+            <pentry minsize="1" maxsize="2">
+                <register name="AF"/>
+            </pentry>
+        </output>
+        <unaffected>
+            <register name="SPL"/>
+            <register name="rBBR"/>
+            <register name="BC_"/>
+            <register name="HL_"/>
+            <register name="DE_"/>
+            <register name="AF_"/>
+            <register name="DECOMPILE_MODE"/>
+        </unaffected>
+    </prototype>
+</compiler_spec>

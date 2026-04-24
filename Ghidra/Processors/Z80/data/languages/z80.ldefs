@@ -42,7 +42,7 @@
     <compiler name="default" spec="z80.cspec" id="default"/>
     <external_name tool="IDA-PRO" name="z180"/>
   </language>
-    <language processor="Z180"
+  <language processor="Z180"
             endian="little"
             size="16"
             variant="Z182"
@@ -53,5 +53,17 @@
             id="z182:LE:16:default">
     <description>Zilog Z182</description>
     <compiler name="default" spec="z80.cspec" id="default"/>
+  </language>
+  <language processor="eZ80"
+            endian="little"
+            size="16"
+            variant="default"
+            version="1.0"
+            slafile="ez80.sla"
+            processorspec="ez80.pspec"
+            manualindexfile="../manuals/eZ80.idx"
+            id="ez80:LE:16:default">
+    <description>Zilog eZ80</description>
+    <compiler name="default" spec="ez80.cspec" id="default"/>
   </language>
 </language_definitions>
