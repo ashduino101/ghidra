@@ -4,6 +4,7 @@
 define endian=little;
 define alignment=1;
 
+define space io      type=ram_space      size=2;
 define space ram     type=ram_space      size=3  default;
 @define PTRSIZE  "3"
 
@@ -242,6 +243,14 @@ macro setParity(in_byte) {
 #     PV = hasEvenParity(in_byte);
 }
 
+macro ioWrite(addr,val) {
+   *[io]:1 addr = val;
+}
+
+macro ioRead(addr,dest) {
+   dest = *[io]:1 addr;
+}
+
 macro push16(val16) {
 	SPS = SPS - 2;
 	ptr:$(PTRSIZE) = zext(SPS);
@@ -362,7 +371,7 @@ Mem24: (imm16)  is prefix=1 & imm16    {
 	mbOffset:3 = zext(mb) << 16;
 	ptr:$(PTRSIZE) = imm16 | mbOffset;
 	export *:3 ptr;
-	}
+}
 
 Addr16: imm16  is imm16      { export *:1 imm16; }
 Addr24: imm24  is imm24      { export *:1 imm24; }
@@ -375,11 +384,11 @@ RelAddr8: loc  is simm8  [ loc = inst_next + simm8; ]  { export *:1 loc; }
 
 RstAddr: loc  is bits3_3 [ loc = bits3_3 << 3; ]       { export *:1 loc; }
 
-IOAddr8a: (imm8)  is imm8                              { export *[const]:2 imm8; }
+IOAddr8a: (imm8)  is imm8 { export *[const]:2 imm8; }
 
 IOAddrC: (C)  is C { ptr:2 = zext(C); export ptr; }
-IOAddrBC: (BC)  is BC { ptr:2 = BC[0,16]; export ptr; }
-IOAddrDE: (DE)  is DE { ptr:2 = DE[0,16]; export ptr; }
+IOAddrBC: (BC)  is BC { ptr:2 = zext(BC[0,16]); export ptr; }
+IOAddrDE: (DE)  is DE { ptr:2 = zext(DE[0,16]); export ptr; }
 
 cc: "NZ"  is bits3_3=0x0  { c:1 = (ZF == 0); export c; }
 cc: "Z"   is bits3_3=0x1  { c:1 = ZF; export c; }
@@ -763,12 +772,12 @@ suf:  is prefix=0 { }
 
 :POP qRegPair4_2    is ADL=0 & op6_2=0x3 & qRegPair4_2 & bits0_4=0x1 {
 	pop16(qRegPair4_2:2);
-	unpackFlags(F);
+	# unpackFlags(F);
 }
 
 :POP qRegPair4_2    is ADL=1 & op6_2=0x3 & qRegPair4_2 & bits0_4=0x1 {
 	pop24(qRegPair4_2);
-	unpackFlags(F);
+	# unpackFlags(F);
 }
 
 :POP IX             is ADL=0 & op0_8=0xdd & IX; op0_8=0xe1 {
@@ -1144,15 +1153,6 @@ suf:  is prefix=0 { }
 	HL = HL_temp;
 }
 
-:SBC HL,sRegPair4_2 is op0_8=0xed & HL; op6_2=0x1 & sRegPair4_2 & bits0_4=0x2 {
-	local HL_temp = HL;
-	local Reg_temp = sRegPair4_2;
-
-	subtractionWithCarry(HL_temp, sRegPair4_2, HL_temp);
-	setResultFlags(HL_temp);
-	HL = HL_temp;
-}
-
 # -------- SUB/SBC --------
 
 :SUB A, reg0_3         is A & op6_2=0x2 & bits3_3=0x2 & reg0_3 {
@@ -1248,6 +1248,15 @@ suf:  is prefix=0 { }
 	subtractionWithCarry(a_temp, val, a_temp);
 	setResultFlags(a_temp);
 	A = a_temp;
+}
+
+:SBC HL,sRegPair4_2 is op0_8=0xed & HL; op6_2=0x1 & sRegPair4_2 & bits0_4=0x2 {
+	local HL_temp = HL;
+	local Reg_temp = sRegPair4_2;
+
+	subtractionWithCarry(HL_temp, sRegPair4_2, HL_temp);
+	setResultFlags(HL_temp);
+	HL = HL_temp;
 }
 
 # -------- AND --------
@@ -2397,11 +2406,12 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 :IN A,IOAddr8a      is op0_8=0xdb & A; IOAddr8a {
 	addr:2 = IOAddr8a;
 	addr[8,8] = A;
-	A = in(addr);
+	ioRead(addr, A);
 }
 
 :IN reg3_3,IOAddrBC  is op0_8=0xed & IOAddrBC; op6_2=0x1 & reg3_3 & bits0_3=0x0 {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	reg3_3 = val;
 	setResultFlags(val);
 	HF = 0;
@@ -2410,7 +2420,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :IN0 reg3_3,IOAddr8a  is op0_8=0xed; op6_2=0x0 & reg3_3 & bits0_3=0x0; IOAddr8a {
-	val:1 = in(IOAddr8a);
+	val:1 = 0;
+	ioRead(IOAddr8a, val);
 	reg3_3 = val;
 	setResultFlags(val);
 	HF = 0;
@@ -2419,7 +2430,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INI                is op0_8=0xed & IOAddrBC; op0_8=0xa2 {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	HL = HL + 1;
@@ -2428,7 +2440,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INI2                is op0_8=0xed & IOAddrBC; op0_8=0x84 {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	C = C + 1;
@@ -2438,7 +2451,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INIR               is op0_8=0xed & IOAddrBC; op0_8=0xb2 {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	HL = HL + 1;
@@ -2448,7 +2462,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INI2R               is op0_8=0xed & IOAddrDE; op0_8=0x94 {
-	val:1 = in(IOAddrDE);
+	val:1 = 0;
+	ioRead(IOAddrDE, val);
 	MemStore(HL,val);
 	BC = BC - 1;
 	DE = DE + 1;
@@ -2459,7 +2474,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :IND                is op0_8=0xed & IOAddrBC; op0_8=0xaa {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	HL = HL - 1;
@@ -2468,7 +2484,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :IND2                is op0_8=0xed & IOAddrBC; op0_8=0x8c {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	HL = HL - 1;
@@ -2478,7 +2495,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INDR               is op0_8=0xed & IOAddrBC; op0_8=0xba {
-	val:1 = in(IOAddrBC);
+	val:1 = 0;
+	ioRead(IOAddrBC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	HL = HL - 1;
@@ -2488,7 +2506,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INDRX               is op0_8=0xed & IOAddrDE; op0_8=0xca {
-	val:1 = in(IOAddrDE);
+	val:1 = 0;
+	ioRead(IOAddrDE, val);
 	MemStore(HL,val);
 	BC = BC - 1;
 	HL = HL - 1;
@@ -2498,7 +2517,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :IND2R               is op0_8=0xed & IOAddrDE; op0_8=0x9c {
-	val:1 = in(IOAddrDE);
+	val:1 = 0;
+	ioRead(IOAddrDE, val);
 	MemStore(HL,val);
 	BC = BC - 1;
 	DE = DE - 1;
@@ -2509,7 +2529,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INDM               is op0_8=0xed & IOAddrC; op0_8=0x8a {
-	val:1 = in(IOAddrC);
+	val:1 = 0;
+	ioRead(IOAddrC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	C = C - 1;
@@ -2519,7 +2540,8 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :INDMR               is op0_8=0xed & IOAddrC; op0_8=0x9a {
-	val:1 = in(IOAddrC);
+	val:1 = 0;
+	ioRead(IOAddrC, val);
 	MemStore(HL,val);
 	B = B - 1;
 	C = C - 1;
@@ -2532,62 +2554,94 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 :OUT IOAddr8a,A     is op0_8=0xd3 & A; IOAddr8a {
 	addr:2 = IOAddr8a;
 	addr[8,8] = A;
-	out(addr, A);
+	ioWrite(addr, A);
 }
 
 :OUT IOAddrC,reg3_3 is ADL=0 & op0_8=0xed & IOAddrC; op6_2=0x1 & reg3_3 & bits0_3=0x1 {
-	out(IOAddrC, reg3_3);
+	ioWrite(IOAddrC, reg3_3);
 }
 
 :OUT IOAddrBC,reg3_3 is ADL=1 & op0_8=0xed & IOAddrBC; op6_2=0x1 & reg3_3 & bits0_3=0x1 {
-	out(IOAddrBC, reg3_3);
+	ioWrite(IOAddrBC, reg3_3);
 }
 
-:OUTI               is op0_8=0xed & IOAddrBC; op0_8=0xa3 {
+
+:OUT IOAddrC,reg3_3 is op0_8=0xed & IOAddrC; op6_2=0x1 & reg3_3 & bits0_3=0x1 {
+	ioWrite(IOAddrC, reg3_3);
+}
+
+:OUTI is op0_8=0xed & IOAddrC; op0_8=0xa3 {
 	local test = B - 1;
 	B = test;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrBC, val);
+	ioWrite(IOAddrC, val);
 	HL = HL + 1;
-	ZF = (test == 0);
-	NF = (test s< 0);
+	$(Z_flag) = (test == 0);
+	$(N_flag) = (test s< 0);
 }
 
-:OUTI2               is op0_8=0xed & IOAddrBC; op0_8=0xa4 {
+:OTIR is op0_8=0xed & IOAddrC; op0_8=0xb3 {
+	B = B - 1;
+	val:1 = 0;
+	MemRead(val,HL);
+
+	ioWrite(IOAddrC, val);
+	HL = HL + 1;
+
+	if (B != 0) goto inst_start;
+
+	$(Z_flag) = 1;
+	$(N_flag) = 1;
+}
+
+:OUTD is op0_8=0xed & IOAddrC; op0_8=0xab {
 	local test = B - 1;
 	B = test;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrBC, val);
+	ioWrite(IOAddrC, val);
+	HL = HL - 1;
+	$(Z_flag) = (test == 0);
+	$(N_flag) = (test s< 0);
+}
+
+:OTDR is op0_8=0xed & IOAddrC; op0_8=0xbb {
+	B = B - 1;
+	val:1 = 0;
+	MemRead(val,HL);
+
+	ioWrite(IOAddrC, val);
+	HL = HL - 1;
+
+	if (B != 0) goto inst_start;
+
+	$(Z_flag) = 1;
+	$(N_flag) = 1;
+}
+
+:OUTI2 is op0_8=0xed & IOAddrBC; op0_8=0xa4 {
+	local test = B - 1;
+	B = test;
+	val:1 = 0;
+	MemRead(val,HL);
+
+	ioWrite(IOAddrBC, val);
+
 	HL = HL + 1;
 	C = C + 1;
 	ZF = (test == 0);
 	NF = (test s< 0);
 }
 
-:OTIR               is op0_8=0xed & IOAddrBC; op0_8=0xb3 {
-	B = B - 1;
-	val:1 = 0;
-	MemRead(val,HL);
-
-	out(IOAddrBC, val);
-	HL = HL + 1;
-
-	if (B != 0) goto inst_start;
-
-	ZF = 1;
-	NF = 1;
-}
-
-:OTIRX               is op0_8=0xed & IOAddrDE; op0_8=0xc3 {
+:OTIRX is op0_8=0xed & IOAddrDE; op0_8=0xc3 {
 	BC = BC - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrDE, val);
+	ioWrite(IOAddrDE, val);
 	HL = HL + 1;
 
 	if (BC != 0) goto inst_start;
@@ -2596,12 +2650,12 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 	NF = 1;
 }
 
-:OTI2R               is op0_8=0xed & IOAddrDE; op0_8=0xb4 {
+:OTI2R is op0_8=0xed & IOAddrDE; op0_8=0xb4 {
 	BC = BC - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrDE, val);
+	ioWrite(IOAddrDE, val);
 	DE = DE + 1;
 	HL = HL + 1;
 
@@ -2612,15 +2666,15 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :OUT0 IOAddr8a,reg3_3 is op0_8=0xed; op6_2=0x0 & reg3_3 & bits0_3=0x1; IOAddr8a {
-	out(IOAddr8a, reg3_3);
+	ioWrite(IOAddr8a, reg3_3);
 }
 
-:OTIMR               is op0_8=0xed & IOAddrC; op0_8=0x93 {
+:OTIMR is op0_8=0xed & IOAddrC; op0_8=0x93 {
 	B = B - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrC, val);
+	ioWrite(IOAddrC, val);
 	HL = HL + 1;
 	C = C + 1;
 
@@ -2630,50 +2684,38 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 	NF = 1;
 }
 
-:OUTD               is op0_8=0xed & IOAddrBC; op0_8=0xab {
+:OUTD2 is op0_8=0xed & IOAddrBC; op0_8=0xac {
 	local test = B - 1;
 	B = test;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrBC, val);
-	HL = HL - 1;
-	ZF = (test == 0);
-	NF = (test s< 0);
-}
-
-:OUTD2              is op0_8=0xed & IOAddrBC; op0_8=0xac {
-	local test = B - 1;
-	B = test;
-	val:1 = 0;
-	MemRead(val,HL);
-
-	out(IOAddrBC, val);
+	ioWrite(IOAddrBC, val);
 	HL = HL - 1;
 	C = C - 1;
 	ZF = (test == 0);
 	NF = (test s< 0);
 }
 
-:OTDM               is op0_8=0xed & IOAddrC; op0_8=0x8b {
+:OTDM is op0_8=0xed & IOAddrC; op0_8=0x8b {
 	local test = B - 1;
 	B = test;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrC, val);
+	ioWrite(IOAddrC, val);
 	C = C - 1;
 	HL = HL - 1;
 	ZF = (test == 0);
 	NF = (test s< 0);
 }
 
-:OTIMR               is op0_8=0xed & IOAddrC; op0_8=0x9b {
+:OTIMR is op0_8=0xed & IOAddrC; op0_8=0x9b {
 	B = B - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrC, val);
+	ioWrite(IOAddrC, val);
 	HL = HL - 1;
 	C = C - 1;
 
@@ -2683,12 +2725,12 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 	NF = 1;
 }
 
-:OTDR               is op0_8=0xed & IOAddrBC; op0_8=0xbb {
-	B = B - 1;
+:OTDRX is op0_8=0xed & IOAddrDE; op0_8=0xcb {
+	BC = BC - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrBC, val);
+	ioWrite(IOAddrDE, val);
 	HL = HL - 1;
 
 	if (B != 0) goto inst_start;
@@ -2697,26 +2739,12 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 	NF = 1;
 }
 
-:OTDRX               is op0_8=0xed & IOAddrDE; op0_8=0xcb {
+:OTD2R is op0_8=0xed & IOAddrDE; op0_8=0xbc {
 	BC = BC - 1;
 	val:1 = 0;
 	MemRead(val,HL);
 
-	out(IOAddrDE, val);
-	HL = HL - 1;
-
-	if (B != 0) goto inst_start;
-
-	ZF = 1;
-	NF = 1;
-}
-
-:OTD2R               is op0_8=0xed & IOAddrDE; op0_8=0xbc {
-	BC = BC - 1;
-	val:1 = 0;
-	MemRead(val,HL);
-
-	out(IOAddrDE, val);
+	ioWrite(IOAddrDE, val);
 	DE = DE - 1;
 	HL = HL - 1;
 
