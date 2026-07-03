@@ -158,4 +158,30 @@
             <register name="DECOMPILE_MODE"/>
         </unaffected>
     </prototype>
+
+
+    <callfixup name="frameset0">
+        <target name="_frameset0"/>
+        <pcode>
+        <body><![CDATA[
+            parentret:3 = *SPL;
+            *SPL = IX;
+            IX = SPL;
+            HL = parentret;
+        ]]></body>
+        </pcode>
+    </callfixup>
+    <callfixup name="frameset">
+        <target name="_frameset"/>
+        <pcode>
+            <body><![CDATA[
+            parentret:3 = *SPL;
+            *SPL = IX;
+            IX = SPL;
+            SPL = SPL + HL;
+            DE = SPL;
+            HL = parentret;
+        ]]></body>
+        </pcode>
+    </callfixup>
 </compiler_spec>

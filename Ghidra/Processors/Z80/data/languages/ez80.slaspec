@@ -497,6 +497,14 @@ suf:  is prefix=0 { }
 	MemStore(HL,reg0_3);
 }
 
+:LD^suf (HL),IX     is suf & op0_8=0xed; op0_8=0x3f & HL & IX {
+	MemStore(HL,IX);
+}
+
+:LD^suf (HL),IY     is suf & op0_8=0xed; op0_8=0x3e & HL & IY {
+	MemStore(HL,IY);
+}
+
 :LD^suf ixMem8,reg0_3   is suf & op0_8=0xdd; op6_2=0x1 & bits3_3=0x6 & reg0_3 & bits0_3!=0x6; ixMem8  {
 	ixMem8 = reg0_3;
 }
@@ -1603,7 +1611,10 @@ suf:  is prefix=0 { }
 
 :MLT dRegPair4_2   is op0_8=0xed; op6_2=0x1 & dRegPair4_2 & bits0_4=0xc  {
 	local temp = dRegPair4_2;
-	dRegPair4_2[0,16] = zext(temp[8,8]) * zext(temp[0,8]);
+	# FIXME: zero-extending here results in really ugly decompilation (CONCAT11(D,E) >> 8, wtf??),
+	#  so we have to use sign extension, but I don't think that's correct? 
+	#  It's possible it doesn't matter, though
+	dRegPair4_2[0,16] = sext(temp[8,8]) * sext(temp[0,8]);
 }
 
 # -------- DAA --------
@@ -2289,7 +2300,7 @@ if (DECOMPILE_MODE) goto <forDecompilation>;
 }
 
 :JP^suf (HL)            is suf & op0_8=0xe9 & ADL=1 & HL {
-	off:3 = (zext(HLU) << 16) | (zext(H) << 8) | zext(L);
+	off:3 = HL;
 	JumpToLoc24(off);
 }
 
